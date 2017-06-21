@@ -3,6 +3,5 @@
 <link>https://nandofpf.github.io/MachineLearning/M8.html</link>
 <br>
 <link>https://nandofpf.github.io/MachineLearning/M8.Rmd</link>
-<br>
 ## Next is the link to the Repo without using the Website function of Github
 <link>https://nandofpf/MachineLearning</link>

@@ -1,0 +1,77 @@
+---
+title: "Course Project for Machile Learning Module in Data Analysis"
+author: "Fernando Pereira de Faria"
+date: "20 de junho de 2017"
+output:
+  html_document: default
+  word_document: default
+---
+##Load the necessary libraries and set seed
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library(caret)
+library(randomForest)
+library(rpart) 
+library(rpart.plot)
+library(RColorBrewer)
+set.seed(1)
+```
+##First thing to be done is loading the traininig data downloaded and split it into 2 datasets whithout overlapping, so that 75% of it is going to be used for trainig and creating the prediction model and the 25% left is going to be used to test the predictors and check if the result is satisfatory.
+```{r}
+#set environment
+setwd("D:/Cousera/Modulo 8")
+#load training data
+train<-read.csv("pml-training.csv")
+#split training data into 2 in order to apply train and test in this dataset
+inTrain <- createDataPartition(y=train$classe, p=0.75, list=FALSE)
+training <- train[inTrain, ]
+testing <- train[-inTrain, ]
+dim(training)
+```
+##We can see that the result data has 14.178 observations of 160 variables and some of than can not be used for prediction purposes, so the next part of the code does this job.
+```{r}
+#exclude  variables that cant be used in prediction
+Clear <- grep("name|timestamp|window|X", colnames(training), value=F) 
+training1 <- training[,-Clear]
+```
+##The next part of the code tests if the data contains missing observations. If the variable is more than half not observed in the dataset, then it will be dropped and, of course, not used in the next procedures.
+```{r}
+#drop variables with more than half data missing in one observation
+training1[training1==""] <- NA
+NAqtt <- apply(training1, 2, function(x) sum(is.na(x)))/nrow(training1)
+training1 <- training1[!(NAqtt>0.5)]
+dim(training1)
+```
+##Now the treated training dataset has the same number of observations but with only 53 variables left (107 variables were dropped by the previous procedure).
+##The data can be considered now clean and tidy, so the statistics part can get started. Considering the, still, high number of variables, a good decision to apply a predicition model in this dataset is using Random Forest method. Although it is highly machine processing consuming, it normally presents good results.
+```{r}
+#using random forest once there are over 50 predictors and this is a suitable method for this case
+modelFit<-randomForest(training1$classe ~ .,   data=training1, do.trace=F)
+print(modelFit)
+```
+##The model used 500 trees each using 7 variables and presented an error rate of 0.44%.The model, then, can be considerated very accurate, not being necessary, before applying it in the test dataset, to build another model.
+##So, next step is, again, make the test dataset clean and tidy and apply the predictors to it and check the results.
+```{r}
+#clean the created test dataset
+testingCl <- testing[,-Clear]
+testingCl[testingCl==""] <- NA
+NAqtt <- apply(testingCl, 2, function(x) sum(is.na(x)))/nrow(testingCl)
+testingCl <- testingCl[!(NAqtt>0.5)]
+#test the model in the created dataset
+testingPC <- predict(modelFit,testingCl[,1:52])
+confusionMatrix(testingPC, testingCl$classe)
+```
+##The results of the predictor built are very accurate in the test dataset. As can be checked from the result of the confusionMatrix function, the accuracy of the predictors was 0.9967 and the p-value is lower than 2.2e-16. There were only 15 cases of wrong predictions in a total of 14.718 observations. The statistics by class show also that the sensitivity, specificity and accuracy in all classes were very close to 1. 
+##Once the predictors seens to work very well in the test dataset created using cross-validation, the model now must be applied on the real test dataset to predict the variable 'classe' from its 20 observations. Again, the clear process is run first, then the predictor is applied.
+```{r}
+#load the real test dataset
+testdata <- read.csv("pml-testing.csv")
+testdataCl <- testdata[,-Clear]
+testdataCl[testdataCl==""] <- NA
+NAqtt <- apply(testdataCl, 2, function(x) sum(is.na(x)))/nrow(testdataCl)
+testdataCl <- testdataCl[!(NAqtt>0.95)]
+testdataPC <- predict(modelFit,testdataCl)
+```
+##The final result of the prediction is the values of the classe variable in the test dataset. The predictions are: `r testdataPC`
